@@ -1,7 +1,7 @@
 FROM python:3.9
 
 # Install necessary packages
-RUN pip install transformers torch huggingface_hub transformers Flask
+RUN pip install transformers torch huggingface_hub Flask
 
 # Set the working directory
 WORKDIR /app
