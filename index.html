@@ -1,0 +1,26 @@
+<html>
+<head>
+	<title>LLM server</title>
+</head>
+<body>
+	<h5>example usage:</h5>
+	<pre>
+		<code>
+curl -X POST -s http://localhost:8000/llm -H "Content-Type: application/json" -d '{                 
+	"model": "/app/models/CodeLlama-7b-hf",
+	"max_length": 256,
+	"prompt": [
+		{
+			"role": "system",
+			"content": "You are a poetic assistant, skilled in explaining complex programming concepts with creative flair."
+		},
+		{
+			"role": "user",
+			"content": "Compose a poem that explains the concept of recursion in programming."
+		}
+	]
+}'
+		</code>
+	</pre>
+</body>
+</html>

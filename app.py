@@ -1,21 +1,34 @@
 from flask import Flask, request, jsonify
-import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
+import torch
+import os
 
 # Create a Flask object
 app = Flask("LLM server")
 
-# Initialize the model and tokenizer variables
+# Declare the model and tokenizer variables
 model = None
 tokenizer = None
 
+# Define the route for the index page
+@app.route('/', methods=['GET', 'POST'])
+def check_status():
+	FILENAME = '/app/index.html'
+	if os.path.exists(FILENAME):
+		with open(FILENAME, 'r') as filestream:
+			return filestream.read()
+	return r'''<html><head><title>LLM server</title></head><body><p>No supplied info.</p></body></html>'''
+
+# Define the route for the API
 @app.route('/llm', methods=['POST'])
 def generate_response():
+	# Use the global variables so that the model and tokenizer are not reloaded for each request
 	global model, tokenizer
 	
-	print("Request received")
+	app.logger.info("Request received")
 
 	try:
+		# Get the JSON data from the flask request
 		data = request.get_json()
 		
 		# Create the model and tokenizer if they were not previously created
@@ -51,8 +64,8 @@ def generate_response():
 				max_length=max_length,
 			)
 
-			print("Response generated")
-			print(sequences)
+			app.logger.info("Response generated")
+			app.logger.info(sequences)
 
 			return jsonify([seq['generated_text'] for seq in sequences])
 
@@ -62,5 +75,7 @@ def generate_response():
 	except Exception as e:
 		return jsonify({"Error": str(e)}), 500 
 
+# when running the script as the main program
 if __name__ == '__main__':
-	app.run(host='0.0.0.0', port=8000, debug=True)
+	# Run the Flask app in localhost:8000
+	app.run(host='0.0.0.0', port=8000, debug=True, use_reloader=False)
