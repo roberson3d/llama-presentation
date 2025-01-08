@@ -30,12 +30,14 @@ def generate_response():
 	try:
 		# Get the JSON data from the flask request
 		data = request.get_json()
+		# app.logger.info(data)
 		
 		# Create the model and tokenizer if they were not previously created
 		if model is None or tokenizer is None:
 			# Get the location of to the desired model here.
 			# This can be a local path or a URL to a Hugging Face model
 			model_dir = data['model']
+			app.logger.info(model_dir)
 
 			# Create the model and tokenizer
 			tokenizer = AutoTokenizer.from_pretrained(model_dir)
@@ -43,9 +45,12 @@ def generate_response():
 
 		# Check if the required fields are present in the JSON data
 		if 'prompt' in data and 'max_length' in data:
-			prompt = data['prompt']
-			max_length = int(data['max_length'])
+			# app.logger.info(data['prompt'])
+			# app.logger.info(data['max_length'])
 			
+			prompt = data['prompt']
+			max_length = int(data['max_length']) + len(prompt)
+
 			# Create the pipeline
 			text_gen = pipeline(
 				"text-generation",
@@ -70,9 +75,11 @@ def generate_response():
 			return jsonify([seq['generated_text'] for seq in sequences])
 
 		else:
+			app.logger.info("Missing required parameters.")
 			return jsonify({"error": "Missing required parameters"}), 400
 
 	except Exception as e:
+		app.logger.info(str(e))
 		return jsonify({"Error": str(e)}), 500 
 
 # when running the script as the main program

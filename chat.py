@@ -3,7 +3,10 @@ import json
 import os
 import argparse
 
-def send_message_to_llm(message: str, model: str) -> dict:
+CHAT_FILE = "data/prompt.json"
+CHAT_FILE_START = "data/starting-prompt.json"
+
+def send_message_to_llm(message: str, model: str, length: int) -> dict:
 	"""
 	Sends a POST request with the given message as the payload
 	using http.client and waits for a JSON response.
@@ -19,14 +22,13 @@ def send_message_to_llm(message: str, model: str) -> dict:
 	API_PORT = 8000
 	API_METH = 'POST'
 	API_PATH = "/llm"
-	LENGTH = 256
 	HEADER = {"Content-Type": "application/json"}
 	
 	# Prepare the connection and headers
 	connection = http.client.HTTPConnection(API_HOST, API_PORT)
 	
 	# Load the history from a file
-	files = ['./data/prompt.json', 'data/starting-prompt.json']
+	files = [CHAT_FILE, CHAT_FILE_START]
 	for filename in files:
 		if os.path.exists(filename):
 			with open(filename, 'r') as filestream:
@@ -39,12 +41,12 @@ def send_message_to_llm(message: str, model: str) -> dict:
 	})
 
 	# Save the history to a file
-	with open('./data/prompt.json', 'w') as filestream:
-		json.dump(history, filestream)
-
+	with open(CHAT_FILE, 'w') as filestream:
+		json.dump(history, filestream, indent=4)
+	
 	payload = json.dumps({
 		"model": model,
-		"max_length": LENGTH,
+		"max_length": length,
 		"prompt": history
 	})
 
@@ -73,22 +75,25 @@ def main() -> None:
 	parser = argparse.ArgumentParser(description="Chat with an LLM.")
 	parser.add_argument('message', type=str, help='The message to send to the LLM')
 	parser.add_argument('--model', type=str, default='/app/models/Llama-3.2-1B-Instruct', help='The model to use for the LLM')
+	parser.add_argument('--length', type=str, default=256, help='The length of the generated text')
 
 	args = parser.parse_args()
 
 	message = args.message
 	model = args.model
+	length = args.length
 
 	# Now you can use `message` and `model` in your script
 	print(f"Message: {message}")
 	print(f"Model: {model}")
+	print(f"Length: {length}")
 
-	response = send_message_to_llm(message, model)
+	response = send_message_to_llm(message, model, length)
 	if response:
 		print("Response from API:\n", response[-1][-1]["content"])
 
-		with open('./response.json', 'w') as filestream:
-			json.dump(response, filestream)
+		with open(CHAT_FILE, 'w') as filestream:
+			json.dump(response[-1], filestream, indent=4)
 
 if __name__ == "__main__":
 	main()
