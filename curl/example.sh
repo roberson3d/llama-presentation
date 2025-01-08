@@ -1,0 +1,1 @@
+curl -i -X POST -s "http://localhost:8000/llm" -H "Content-Type: application/json" --data-binary "@./curl.json"

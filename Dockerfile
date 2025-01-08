@@ -10,8 +10,9 @@ WORKDIR /app
 RUN mkdir /model
 
 # Copy your application code (if any)
-COPY app.py ./
-COPY index.html ./
+# COPY chat-local/app.py ./
+# COPY chat-local/index.html ./
+COPY chat-server/* ./
 
 # Expose the port your app will run on
 EXPOSE 8000
