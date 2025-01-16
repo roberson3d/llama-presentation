@@ -349,8 +349,13 @@ if __name__ == "__main__":
 | | |
 |-|-|
 | **Meta LLaMA** | [llama.com](https://www.llama.com/) |
-| **Ollama** | [ollama.com](https://ollama.com/),<br>[ollama docker](https://hub.docker.com/r/ollama/ollama),<br>[ollama github](https://github.com/ollama/ollama?tab=readme-ov-file),<br>[something](https://xethub.com/blog/comparing-code-llama-models-locally-macbook) |
+| **Ollama** | [ollama.com](https://ollama.com/),<br>[ollama docker](https://hub.docker.com/r/ollama/ollama),<br>[ollama github](https://github.com/ollama/ollama),<br>[something](https://xethub.com/blog/comparing-code-llama-models-locally-macbook) |
 | **Hugging Face** | [huggingface.co](https://huggingface.co/meta-llama),<br>[llama + transformers recipe](https://github.com/meta-llama/llama-recipes/blob/main/recipes/quickstart/Running_Llama3_Anywhere/Running_Llama_on_HF_transformers.ipynb) |
 | **Docker** | [docker.com](https://docs.docker.com/build/concepts/dockerfile/), <br>[guide to llama in docker](https://medium.com/@ahmedtm/a-simple-guide-to-run-the-llama-model-in-a-docker-container-a3899032995e) |
 |Others|[flask](https://flask.palletsprojects.com/en/stable/)<br>|
 |||
+
+https://www.linkedin.com/pulse/running-llama-model-ollama-docker-container-simple-guide-islam-bxedc/
+https://collabnix.com/getting-started-with-ollama-and-docker/
+https://github.com/meta-llama/llama-models
+https://medium.com/bluetuple-ai/how-to-enable-gpu-support-for-tensorflow-or-pytorch-on-macos-4aaaad057e74
