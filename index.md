@@ -1,5 +1,13 @@
-# Llama private instance  
+# Running Llama as a Private Instance  
 ### by Ricky Roberson
+
+
+
+## Why run a private instance
+
+* Data Security & Privacy
+* Customization and Fine-Tuning
+* Offline Deployment
 
 
 
@@ -8,33 +16,35 @@
 ##### Large Language Model Meta AI
 
 * Developed by Meta
-* Open source LLM model family
+* Open source LLM families
 * Free for research and some commerial use (non-competitive, < 700m MAU)
-* Multiple varients including number of tokens, quantitization, instruct versions, and more.
+* Multiple varients including number of tokens, quantitization, instruct versions, and more
 
 
-### Getting Models
+### Accessing Models
 
-* Models can be retrieved directly from Meta, HuggingFace, or Kaggle.
+* Models can be retrieved directly from Meta, HuggingFace, or Kaggle
 * Models require license agreements available with each distributor
 * Options to run models on Linux, Mac, or Windows
 * Documentation and instructions on [Llama.com](http://www.llama.com)
 
 
 
-## Ollama
-
-##### Create, run, and share large language models
-
-* Open source platform for for downloading, running, and working with LLMs
-* Meta suggested tool for Mac, also available for Windows & Linux
-
-
-
 ## HuggingFace + Colab
 
+#### Google Colab
 
-#### Installing & Login
+* Write and execute Python
+* Zero configuration required
+* Access to GPUs free of charge
+* Easy sharing
+
+#### HuggingFace
+
+* Github for machine learning
+
+
+#### Install Dependencies & HuggingFace Login
 
 ```python [|1-6|8]
 !pip install -U "huggingface_hub[cli]"
@@ -48,6 +58,8 @@ login(userdata.get('HF_TOKEN'))
 ```
 
 Ensure dependencies are installed, including ability to log in to HuggingFace. Using the Colab notebook secrets to store the app token.
+* [Transformers](https://huggingface.co/docs/transformers/index) is HuggingFace's API that gives easy access to their database of pretained models for downloading and training. It also supports interoperability between PyTorch, TensorFlow, and JAX which are a few of the big frameworks for worrking with LLMs.
+* [Accelerate](https://huggingface.co/docs/accelerate/en/index) is a library for running PyTorch code in distributed configurations (like multiple GPUs).
 
 
 #### Setup Transformers Pipline
@@ -57,7 +69,7 @@ from transformers import AutoTokenizer
 import transformers
 import torch
 
-model = "meta-llama/CodeLlama-7b-hf"
+model = "meta-llama/CodeLlama-7b-Instruct-hf"
 
 tokenizer = AutoTokenizer.from_pretrained(model)
 
@@ -70,8 +82,8 @@ pipeline = transformers.pipeline(
 )
 ```
 
-Designate the model to use. This will have to be downloaded the on the first use, but will be available for future queries from that point.
-I am using the model id of a predefined tokenizer hosted inside a model repo on HuggingFace, but directory paths also work if the model is already local
+Designate the model to use. This will have to be downloaded and built on the first use, but will be available for future queries from that point.
+I am using the model id of a predefined tokenizer hosted inside a model repo on HuggingFace, but directory paths also work if the model is already local.
 
 
 #### Submitting prompts
@@ -96,19 +108,31 @@ for seq in sequences:
     print(f"Result: {seq['generated_text']}")
 ```
 
-Build a prompt combining system instructions and user queries. Generates AI responses and output the result for each generated sequence.
+Build a prompt. Depending on the model used, the format may have different forms like just the prompt string to expand from or combining system instructions and user queries. AI responses are generated and the result is printed for each generated sequence.
 
 
+#### Thoughts on Colab
 
-## Docker
+* Really nice tool for exploring python related development.
+* Long running tasks are difficult to maintain at the free tier.
+* Not a good option for one off uses as it will require re-downloading and building tokens.
+
+
+## Running Locally in Docker
+
+* Containerization that allows sharing and running "anywhere".
+* Builds environment via script in a consistent, predictable, and reproducable manner.
+* Simulate running the application in a virtual machine or server.
+* Open source
+
 
 
 ### Dockerfile
-```dockerfile [1|3-4|6-7|9-10|12-13|15-16|18-19|21-22]
+```dockerfile [1|3-4|6-7|9-10|12-13|15-16|18-19]
 FROM python:3.9
 
 # Install necessary packages
-RUN pip install transformers torch
+RUN pip install transformers torch huggingface_hub Flask
 
 # Set the working directory
 WORKDIR /app
@@ -119,24 +143,21 @@ COPY app.py ./
 # Create a directory for the model
 RUN mkdir /model
 
-# Install the needed packages
-RUN pip install huggingface_hub transformers Flask
-
-# Expose the port the app will run on
+# Expose the port the app will listen to
 EXPOSE 8000
 
-# Command to run your app
+# Command to run our app
 CMD ["python", "app.py"]
 ```
 
 
-### Build the docker image
+### Working with the Docker image
 
 ```sh
 docker build -t my-llm-app .
 ```
 
-### Run the docker image
+Creates the container based on the dockerfile.
 
 ```sh
 docker run \
@@ -146,8 +167,12 @@ docker run \
 	my-llm-app
 ```
 
+Runs the container.
+The `localhost:8000` port is connected to the containers `8000` port so we can send messages to our app running there.
+The local `./models` directory is also mounted to the to the container's `/app/models` directory so we can access the models we have downloaded and don't have to include them in the repo. 
 
-## App running in docker container 
+
+### App running in docker container 
 
 ```python [|1,5-6,12-13|31-32,40-56|70-71]
 from flask import Flask, request, jsonify
@@ -226,11 +251,17 @@ if __name__ == '__main__':
 Small application that is similar to the Colab script, but accessable via REST API at local host port 8000 via a Flask app. 
 
 
-## Using local model
+### Messaging the Docker container's app 
 
 ```sh [2|4-13|6,10|7,11]
-curl -s http://localhost:8000/llm -H "Content-Type: application/json" -d '{                 
-  "model": "/app/models/CodeLlama-7b-hf",
+curl -x POST -s http://localhost:8000/llm -H "Content-Type: application/json" --data-binary '@curl.json'
+```
+
+cURL post command sent to our container app that uses a file for the payload as it's easier to adjust and read.
+
+```
+{                 
+  "model": "/app/models/CodeLlama-7b-Instruct-hf",
   "max_length": 256,
   "prompt": [
     {
@@ -242,13 +273,21 @@ curl -s http://localhost:8000/llm -H "Content-Type: application/json" -d '{
       "content": "What casting options are there in c++?"
     }
   ]
-}'
+}
 ```
+
+Example `curl.json` File
 
 Send a curl resquest to the app running in docker over the exposed port. 
 
 
-```python
+#### Add a better interface for messaging
+
+* Small python script `chat.py` that makes it easier to do "continuous conversations" with the AI. This is achieved by refeeding back in the series of prompt and responses as a sequence of messages.
+* Several other front end UIs exist for this sort of thing, but I haven't dug into good options.
+
+<!--
+```
 import http.client
 import json
 import os
@@ -341,7 +380,19 @@ if __name__ == "__main__":
 	main()
 
 ```
+-->
 
+
+
+## Ollama
+
+##### Create, run, and share large language models
+
+* Open source platform for for downloading, running, and working with LLMs
+* Meta suggested tool for Mac, also available for Windows & Linux
+
+
+###
 
 
 ### Resources
