@@ -39,9 +39,12 @@ def generate_response():
 			model_dir = data['model']
 			app.logger.info(model_dir)
 
+			# device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+			# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 			# Create the model and tokenizer
-			tokenizer = AutoTokenizer.from_pretrained(model_dir)
-			model = AutoModelForCausalLM.from_pretrained(model_dir)
+			tokenizer = AutoTokenizer.from_pretrained(model_dir) #.to(device)
+			model = AutoModelForCausalLM.from_pretrained(model_dir) #.to(device)
 
 		# Check if the required fields are present in the JSON data
 		if 'prompt' in data and 'max_length' in data:
@@ -84,5 +87,6 @@ def generate_response():
 
 # when running the script as the main program
 if __name__ == '__main__':
+	os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 	# Run the Flask app in localhost:8000
 	app.run(host='0.0.0.0', port=8000, debug=True, use_reloader=False)

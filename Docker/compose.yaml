@@ -13,3 +13,8 @@ services:
       context: .
     ports:
       - 8000:8000
+    volumes:
+      - type: bind
+        source: ./models
+        target: /app/models
+        read_only: true
