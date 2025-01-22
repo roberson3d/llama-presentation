@@ -46,7 +46,7 @@
 
 ### Install Dependencies & HuggingFace Login
 
-```python [|1-6|8]
+```python [1-6|8]
 !pip install -U "huggingface_hub[cli]"
 !pip install transformers
 !pip install accelerate
@@ -64,13 +64,13 @@ Ensure dependencies are installed, including ability to log in to HuggingFace. U
 
 ### Setup Transformers Pipline
 
-```python [|5]
+```python [|6]
 from transformers import AutoTokenizer
 import transformers
 import torch
+import datetime
 
 model = "meta-llama/CodeLlama-7b-Instruct-hf"
-
 tokenizer = AutoTokenizer.from_pretrained(model)
 
 pipeline = transformers.pipeline(
@@ -88,11 +88,13 @@ I am using the model id of a predefined tokenizer hosted inside a model repo on 
 
 ### Submitting prompts
 
-```python [|1-4|16-17]
+```python [|1-6|18-19]
 base_prompt = "<s>[INST]\n<<SYS>>\n{system_prompt}\n<</SYS>>\n\n{user_prompt}[/INST]"
 
-input = base_prompt.format(system_prompt = "Answer the following programming questions as a knowledgable engineer.",
-                           user_prompt = "What casting options are there in c++?")
+input = base_prompt.format(
+	system_prompt = "Answer the following programming questions as a knowledgable engineer.",
+	user_prompt = "What casting options are there in c++?"
+)
     
 sequences = pipeline(
     input,
@@ -152,7 +154,12 @@ EXPOSE 8000
 CMD ["python", "app.py"]
 ```
 
-<p style="text-align:center; font-size: .7em">Example Dockerfile file</p>
+<!--p style="text-align:center; font-size: .7em">Example Dockerfile file</p -->
+
+* Use a python base image and install necessary packages.
+* Set up the workspace, copy the application files, and prepare the directory layout.
+* Expose port that application is communicating over.
+* Designate application to run.
 
 
 ### Working with the Docker image
@@ -163,97 +170,23 @@ docker build -t my-llm-app .
 
 Creates the container based on the dockerfile.
 
-```sh
-docker run \
-	--name my-llm-app-container -d \
-	--mount type=bind,source=./models,target=/app/models,readonly \
-	-p 8000:8000 \
+```sh [|2,6|4|3]
+docker run
+	--name my-llm-app-container -d
+	--mount type=bind,source=./models,target=/app/models,readonly
+	-p 8000:8000
 	--gpus all
 	my-llm-app
 ```
 
-Runs the container.
-The `localhost:8000` port is connected to the containers `8000` port so we can send messages to our app running there.
-The local `./models` directory is also mounted to the to the container's `/app/models` directory so we can access the models we have downloaded and don't have to include them in the repo. 
+Creates and runs a container from the previous built image. The `localhost:8000` port is connected to the containers `8000` port so we can send messages to our app running there. The local `./models` directory is also mounted to the to the container's `/app/models` directory so we can access the models we have downloaded and don't have to include them in the repo. 
 
 
 ### App running in docker container 
 
-```python [|1,5-6,12-13|31-32,39-56|70-71]
-from flask import Flask, request, jsonify
-from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
-import torch
-
-# Create a Flask object
-app = Flask("LLM server")
-
-# Declare the model and tokenizer variables
-model = None
-tokenizer = None
-
-# Define the route for the API
-@app.route('/llm', methods=['POST'])
-def generate_response():
-	# Use the global variables so that the model and tokenizer are not reloaded for each request
-	global model, tokenizer
-	
-	print("Request received")
-
-	try:
-		# Get the JSON data from the flask request
-		data = request.get_json()
-		
-		# Create the model and tokenizer if they were not previously created
-		if model is None or tokenizer is None:
-			# Get the location of to the desired model here.
-			# This can be a local path or a URL to a Hugging Face model
-			model_dir = data['model']
-
-			# Create the model and tokenizer
-			tokenizer = AutoTokenizer.from_pretrained(model_dir)
-			model = AutoModelForCausalLM.from_pretrained(model_dir)
-
-		# Check if the required fields are present in the JSON data
-		if 'prompt' in data and 'max_length' in data:
-			prompt = data['prompt']
-			max_length = int(data['max_length'])
-			
-			# Create the pipeline
-			text_gen = pipeline(
-				"text-generation",
-				model=model,
-				tokenizer=tokenizer,
-				torch_dtype=torch.float16,
-				device_map="auto",)
-			
-			# Run the model
-			sequences = text_gen(
-				prompt,
-				do_sample=True,
-				top_k=10,
-				num_return_sequences=1,
-				eos_token_id=tokenizer.eos_token_id,
-				max_length=max_length,
-			)
-
-			print("Response generated")
-			print(sequences)
-
-			return jsonify([seq['generated_text'] for seq in sequences])
-
-		else:
-			return jsonify({"error": "Missing required parameters"}), 400
-
-	except Exception as e:
-		return jsonify({"Error": str(e)}), 500 
-
-# when running the script as the main program
-if __name__ == '__main__':
-	# Run the Flask app in localhost:8000
-	app.run(host='0.0.0.0', port=8000, debug=True)
-```
-
-Small application that is similar to the Colab script, but accessable via REST API at local host port 8000 via a Flask app. 
+* Create an server application that listens on a local port.
+* Define a REST style route for an API that defines a model and prompt
+* Create the pipeline & run the model similar to Colab script
 
 
 ### Messaging the Docker container's app 
@@ -290,6 +223,13 @@ cURL post command sent to our app running in the Docker container, over the expo
 * Several other front end UIs exist for this sort of thing, but I haven't dug into good options.
 
 
+### Thoughts on Docker
+
+* Models are generally large making it difficult to build into the image without causing bloating.
+* GPU integration requires additional configuration, and in some cause may not be possible.
+* Debugging is more difficult for applications running inside a container.
+
+
 
 ## Ollama
 
@@ -299,15 +239,38 @@ cURL post command sent to our app running in the Docker container, over the expo
 * Meta suggested tool for Mac, also available for Windows & Linux
 
 
-### ???
+### Run Ollama
 
 Install ollama [ollama.com](https://ollama.com/)
 
+##### Launch server and pull model
 ```sh
+# start ollama service
 ollama serve
+
+# pulls model from ollama's library (https://ollama.com/search)
 ollama pull codellama:7b-code
+```
+
+##### Run Model
+
+Run model directly with ollama interface.
+```
 ollama run codellama:7b-code '<PRE> def compute_gcd(x, y): <SUF>return result <MID>'
 ```
+
+Alternatively, run model with cURL message.
+```
+curl http://localhost:11434/api/generate -d '{ "model": "codellama:7b-code", "prompt": "<PRE> def recursiveTutorial(value, level): <SUF>return result <MID>", "stream": false}'
+```
+
+
+### Thoughts on Ollama
+
+* I didn't spend as much time with Ollama.
+* Very easy to setup and begin using. 
+* GPU utilization out of the box.
+* Models are limited to the the selection on ollama.com. Custom GGUF models can be created and used, but may be difficult to make.
 
 
 
